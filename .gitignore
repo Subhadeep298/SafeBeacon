@@ -1,0 +1,29 @@
+# General
+.DS_Store
+.idea/
+.vscode/
+*.log
+*.tmp
+
+# Backend (Java/Spring Boot)
+backend/target/
+backend/mvnw
+backend/mvnw.cmd
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/help.md
+backend/.env
+!backend/.env.example
+
+# Mobile (React Native/Expo)
+mobile/node_modules/
+mobile/.expo/
+mobile/dist/
+mobile/web-build/
+mobile/.env
+!mobile/.env.example
+mobile/*.jks
+mobile/*.keystore
+mobile/android/app/build/
+mobile/android/.gradle/
+mobile/ios/Pods/
+mobile/ios/build/

@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "SafeBeacon",
+    "slug": "safebeacon",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.safebeacon",
+      "infoPlist": {
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "SafeBeacon needs your location to send emergency alerts with your current position.",
+        "NSLocationWhenInUseUsageDescription": "SafeBeacon needs your location to send emergency alerts with your current position.",
+        "NSMicrophoneUsageDescription": "SafeBeacon records audio during emergencies for safety purposes."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#000000"
+      },
+      "package": "com.safebeacon",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "RECORD_AUDIO",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow SafeBeacon to use your location for emergency alerts."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#00FF00"
+        }
+      ],
+      "expo-web-browser"
+    ]
+  }
+}
