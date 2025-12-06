@@ -45,6 +45,10 @@ export default function LoginScreen({ navigation, onLogin }: LoginScreenProps) {
                     const accessToken = params?.accessToken as string;
                     const refreshToken = params?.refreshToken as string;
 
+                    console.log('Deep Link URL:', url);
+                    console.log('Parsed Params:', JSON.stringify(params));
+                    console.log('AccessToken found:', !!accessToken);
+
                     if (accessToken) {
                         await AsyncStorage.setItem('accessToken', accessToken);
                         if (refreshToken) await AsyncStorage.setItem('refreshToken', refreshToken);

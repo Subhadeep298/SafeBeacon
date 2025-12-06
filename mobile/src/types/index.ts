@@ -4,7 +4,11 @@ export interface User {
     name: string;
     phone?: string;
     profilePicture?: string;
+    guardianCode?: string;
     authProvider: 'JWT' | 'GOOGLE';
+    lastLatitude?: number;
+    lastLongitude?: number;
+    lastLocationUpdate?: string;
 }
 
 export interface AuthResponse {

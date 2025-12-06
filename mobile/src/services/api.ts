@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
+import { DeviceEventEmitter } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthResponse, LoginRequest, RegisterRequest, User } from '../types';
 
@@ -21,9 +22,16 @@ const api: AxiosInstance = axios.create({
 api.interceptors.request.use(
     async (config) => {
         const token = await AsyncStorage.getItem('accessToken');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+        console.log('API Request Interceptor - Token:', token);
+
+        if (token && token !== 'null') {
+            if (!config.headers) {
+                config.headers = {} as any;
+            }
+            config.headers['Authorization'] = `Bearer ${token}`;
+            console.log('Set Authorization header to:', config.headers['Authorization']);
         }
+        console.log('Final config.headers:', JSON.stringify(config.headers));
         return config;
     },
     (error) => {
@@ -38,6 +46,7 @@ api.interceptors.response.use(
         if (error.response?.status === 401) {
             // Clear tokens and redirect to login
             await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'user']);
+            DeviceEventEmitter.emit('auth-logout');
         }
         return Promise.reject(error);
     }

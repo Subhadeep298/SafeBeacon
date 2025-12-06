@@ -17,9 +17,10 @@ import { User } from '../types';
 interface HomeScreenProps {
     user: User;
     onLogout: () => void;
+    navigation: any;
 }
 
-export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
+export default function HomeScreen({ user, onLogout, navigation }: HomeScreenProps) {
     const handleLogout = async () => {
         Alert.alert(
             'Logout',
@@ -59,6 +60,24 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
                         <Text style={styles.statusText}>System Active</Text>
                     </View>
                     <Text style={styles.statusSubtext}>All safety features enabled</Text>
+                </View>
+
+                {/* Quick Actions */}
+                <View style={[styles.infoCard, { marginBottom: 24 }]}>
+                    <Text style={styles.cardTitle}>Safety Network</Text>
+                    <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => navigation.navigate('Guardians')}
+                    >
+                        <Text style={styles.actionButtonText}>Manage Guardians</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.actionButton, { marginTop: 10 }]}
+                        onPress={() => navigation.navigate('Map')}
+                    >
+                        <Text style={styles.actionButtonText}>View Live Map</Text>
+                    </TouchableOpacity>
                 </View>
 
                 {/* User Info Card */}
@@ -179,5 +198,16 @@ const styles = StyleSheet.create({
         fontSize: SIZES.body,
         color: COLORS.white,
         fontWeight: '500',
+    },
+    actionButton: {
+        backgroundColor: COLORS.neonGreen,
+        padding: 12,
+        borderRadius: SIZES.radius,
+        alignItems: 'center',
+    },
+    actionButtonText: {
+        color: COLORS.black,
+        fontWeight: 'bold',
+        fontSize: SIZES.h4,
     },
 });

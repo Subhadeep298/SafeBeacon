@@ -11,6 +11,7 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.Random;
 
 @Component
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
@@ -40,6 +41,10 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 user.setAuthProvider(User.AuthProvider.GOOGLE);
                 user.setIsVerified(true);
 
+                if (user.getGuardianCode() == null) {
+                        user.setGuardianCode(generateUniqueGuardianCode());
+                }
+
                 userRepository.save(user);
 
                 // Generate JWT tokens
@@ -52,5 +57,14 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                                 accessToken, refreshToken);
 
                 getRedirectStrategy().sendRedirect(request, response, redirectUrl);
+        }
+
+        private String generateUniqueGuardianCode() {
+                Random random = new Random();
+                String code;
+                do {
+                        code = String.format("%06d", random.nextInt(1000000));
+                } while (userRepository.existsByGuardianCode(code));
+                return code;
         }
 }

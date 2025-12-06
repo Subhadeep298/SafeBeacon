@@ -14,6 +14,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Random;
+
 @Service
 public class AuthService {
 
@@ -43,6 +45,9 @@ public class AuthService {
         user.setPhone(request.getPhone());
         user.setAuthProvider(User.AuthProvider.JWT);
         user.setIsVerified(false);
+
+        user.setIsVerified(false);
+        user.setGuardianCode(generateUniqueGuardianCode());
 
         user = userRepository.save(user);
 
@@ -86,6 +91,19 @@ public class AuthService {
                 user.getName(),
                 user.getPhone(),
                 user.getProfilePicture(),
-                user.getAuthProvider().name());
+                user.getGuardianCode(),
+                user.getAuthProvider().name(),
+                user.getLastLatitude(),
+                user.getLastLongitude(),
+                user.getLastLocationUpdate() != null ? user.getLastLocationUpdate().toString() : null);
+    }
+
+    private String generateUniqueGuardianCode() {
+        Random random = new Random();
+        String code;
+        do {
+            code = String.format("%06d", random.nextInt(1000000));
+        } while (userRepository.existsByGuardianCode(code));
+        return code;
     }
 }

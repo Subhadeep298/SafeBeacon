@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { StyleSheet, View, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, ActivityIndicator, DeviceEventEmitter } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { COLORS } from './src/constants/theme';
 import { User } from './src/types';
@@ -11,6 +11,9 @@ import { User } from './src/types';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import HomeScreen from './src/screens/HomeScreen';
+import GuardianScreen from './src/screens/GuardianScreen';
+import MapScreen from './src/screens/MapScreen';
+import { useLocationTracking } from './src/hooks/useLocationTracking';
 
 const Stack = createStackNavigator();
 
@@ -18,15 +21,28 @@ export default function App() {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // Global location tracking
+    useLocationTracking(user);
+
     useEffect(() => {
         checkAuth();
+        const subscription = DeviceEventEmitter.addListener('auth-logout', handleLogout);
+        return () => {
+            subscription.remove();
+        };
     }, []);
 
     const checkAuth = async () => {
         try {
             const userData = await AsyncStorage.getItem('user');
-            if (userData) {
+            const token = await AsyncStorage.getItem('accessToken');
+
+            if (userData && token && token !== 'null') {
                 setUser(JSON.parse(userData));
+            } else {
+                // Invalid state, clear everything
+                await AsyncStorage.multiRemove(['user', 'accessToken', 'refreshToken']);
+                setUser(null);
             }
         } catch (error) {
             console.error('Error checking auth:', error);
@@ -69,9 +85,13 @@ export default function App() {
                     }}
                 >
                     {user ? (
-                        <Stack.Screen name="Home" options={{ headerShown: false }}>
-                            {(props) => <HomeScreen {...props} user={user} onLogout={handleLogout} />}
-                        </Stack.Screen>
+                        <>
+                            <Stack.Screen name="Home" options={{ headerShown: false }}>
+                                {(props) => <HomeScreen {...props} user={user} onLogout={handleLogout} />}
+                            </Stack.Screen>
+                            <Stack.Screen name="Guardians" component={GuardianScreen} options={{ title: 'My Guardians' }} />
+                            <Stack.Screen name="Map" component={MapScreen} options={{ title: 'Live Location' }} />
+                        </>
                     ) : (
                         <>
                             <Stack.Screen name="Login" options={{ headerShown: false }}>

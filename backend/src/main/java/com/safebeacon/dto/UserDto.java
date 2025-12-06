@@ -13,5 +13,9 @@ public class UserDto {
     private String name;
     private String phone;
     private String profilePicture;
+    private String guardianCode;
     private String authProvider;
+    private Double lastLatitude;
+    private Double lastLongitude;
+    private String lastLocationUpdate;
 }
