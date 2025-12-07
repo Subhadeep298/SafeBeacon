@@ -7,12 +7,10 @@ import { StatusBar } from 'expo-status-bar';
 import { COLORS } from './src/constants/theme';
 import { User } from './src/types';
 
-// Screens
+// Screens & Navigation
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
-import HomeScreen from './src/screens/HomeScreen';
-import GuardianScreen from './src/screens/GuardianScreen';
-import MapScreen from './src/screens/MapScreen';
+import TabNavigator from './src/navigation/TabNavigator';
 import { useLocationTracking } from './src/hooks/useLocationTracking';
 
 const Stack = createStackNavigator();
@@ -85,13 +83,9 @@ export default function App() {
                     }}
                 >
                     {user ? (
-                        <>
-                            <Stack.Screen name="Home" options={{ headerShown: false }}>
-                                {(props) => <HomeScreen {...props} user={user} onLogout={handleLogout} />}
-                            </Stack.Screen>
-                            <Stack.Screen name="Guardians" component={GuardianScreen} options={{ title: 'My Guardians' }} />
-                            <Stack.Screen name="Map" component={MapScreen} options={{ title: 'Live Location' }} />
-                        </>
+                        <Stack.Screen name="Main" options={{ headerShown: false }}>
+                            {() => <TabNavigator user={user} onLogout={handleLogout} />}
+                        </Stack.Screen>
                     ) : (
                         <>
                             <Stack.Screen name="Login" options={{ headerShown: false }}>

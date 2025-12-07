@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, FlatList, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, ActivityIndicator, Clipboard } from 'react-native';
 import axios from 'axios';
 import { GuardianService } from '../services/GuardianService';
 import { authAPI } from '../services/api';
 import { User } from '../types';
+import { COLORS, SIZES, FONTS, SHADOWS } from '../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function GuardianScreen() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -12,28 +14,27 @@ export default function GuardianScreen() {
     const [protecting, setProtecting] = useState<any[]>([]);
     const [tab, setTab] = useState<'guardians' | 'protecting'>('guardians');
     const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         loadData();
     }, []);
 
     const loadData = async () => {
+        setLoading(true);
         try {
             const myGuardians = await GuardianService.getMyGuardians();
-            console.log('Fetched guardians:', JSON.stringify(myGuardians));
             setGuardians(Array.isArray(myGuardians) ? myGuardians : []);
 
             const myProtecting = await GuardianService.getProtectingUsers();
             setProtecting(Array.isArray(myProtecting) ? myProtecting : []);
-        } catch (error) {
-            console.error('Error loading guardian data:', error);
-        }
 
-        try {
             const profile = await authAPI.getProfile();
             setCurrentUser(profile.data);
         } catch (error) {
-            console.log('Error fetching profile:', error);
+            console.error('Error loading data:', error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -43,7 +44,6 @@ export default function GuardianScreen() {
             const results = await GuardianService.searchUsers(searchQuery);
             setSearchResults(Array.isArray(results) ? results : []);
         } catch (error) {
-            console.error('Search error details:', error);
             if (axios.isAxiosError(error)) {
                 Alert.alert('Search Failed', error.response?.data?.message || error.message);
             } else {
@@ -55,101 +55,184 @@ export default function GuardianScreen() {
     const addGuardian = async (id: number) => {
         try {
             await GuardianService.addGuardian(id);
-            Alert.alert('Success', 'Guardian added');
+            Alert.alert('Success', 'Watcher added');
             setSearchResults([]);
             setSearchQuery('');
             loadData();
         } catch (error) {
-            Alert.alert('Error', 'Failed to add guardian');
+            Alert.alert('Error', 'Failed to add watcher');
         }
     };
 
     const removeGuardian = async (id: number) => {
-        try {
-            await GuardianService.removeGuardian(id);
-            loadData();
-        } catch (error) {
-            Alert.alert('Error', 'Failed to remove guardian');
+        Alert.alert(
+            "Remove Watcher",
+            "Are you sure you want to remove this watcher?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Remove",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            await GuardianService.removeGuardian(id);
+                            loadData();
+                        } catch (error) {
+                            Alert.alert('Error', 'Failed to remove watcher');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const copyCode = () => {
+        if (currentUser?.guardianCode) {
+            Clipboard.setString(currentUser.guardianCode);
+            Alert.alert("Copied", "Watcher code copied to clipboard!");
         }
     };
 
+    const renderHeader = () => (
+        <View style={styles.header}>
+            <View style={styles.codeCard}>
+                <View>
+                    <Text style={styles.codeLabel}>My Watcher Code</Text>
+                    <Text style={styles.codeValue}>{currentUser?.guardianCode || 'Loading...'}</Text>
+                </View>
+                <TouchableOpacity onPress={copyCode} style={styles.copyButton}>
+                    <Ionicons name="copy-outline" size={20} color={COLORS.black} />
+                </TouchableOpacity>
+            </View>
+            <Text style={styles.codeDescription}>
+                Share this code with trusted contacts so they can add you as their beacon.
+            </Text>
+        </View>
+    );
+
+    const renderTabs = () => (
+        <View style={styles.tabContainer}>
+            <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setTab('guardians')}
+                style={[styles.tab, tab === 'guardians' && styles.activeTab]}
+            >
+                <Ionicons name="shield-checkmark" size={18} color={tab === 'guardians' ? COLORS.white : COLORS.mutedText} />
+                <Text style={[styles.tabText, tab === 'guardians' && styles.activeTabText]}>My Watchers</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setTab('protecting')}
+                style={[styles.tab, tab === 'protecting' && styles.activeTab]}
+            >
+                <Ionicons name="people" size={18} color={tab === 'protecting' ? COLORS.white : COLORS.mutedText} />
+                <Text style={[styles.tabText, tab === 'protecting' && styles.activeTabText]}>Beacons</Text>
+            </TouchableOpacity>
+        </View>
+    );
+
     return (
         <View style={styles.container}>
-            <View style={styles.tabContainer}>
-                <TouchableOpacity onPress={() => setTab('guardians')} style={[styles.tab, tab === 'guardians' && styles.activeTab]}>
-                    <Text style={styles.tabText}>My Guardians</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setTab('protecting')} style={[styles.tab, tab === 'protecting' && styles.activeTab]}>
-                    <Text style={styles.tabText}>Protecting</Text>
+            <View style={styles.topBar}>
+                <Text style={styles.screenTitle}>Network</Text>
+                <TouchableOpacity onPress={loadData} style={styles.refreshButton}>
+                    <Ionicons name="refresh" size={20} color={COLORS.neonGreen} />
                 </TouchableOpacity>
             </View>
 
-            {tab === 'guardians' && (
-                <View style={styles.section}>
-                    <Text style={styles.subtitle}>Add Guardian</Text>
-                    <View style={{ marginBottom: 15, padding: 15, backgroundColor: '#222', borderRadius: 8 }}>
-                        <Text style={{ color: '#fff', fontSize: 16 }}>My Guardian Code: <Text style={{ fontWeight: 'bold', color: '#6A0DAD', fontSize: 20 }}>{currentUser?.guardianCode || 'Loading...'}</Text></Text>
-                        <Text style={{ color: '#aaa', fontSize: 12, marginTop: 5 }}>Share this code with others so they can find you.</Text>
-                    </View>
+            {renderHeader()}
+            {renderTabs()}
 
-                    <Text style={styles.subtitle}>Find Guardian</Text>
-                    <View style={styles.searchRow}>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Guardian Code (6 digits)"
-                            placeholderTextColor="#ccc"
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
-                            keyboardType="number-pad"
-                            maxLength={6}
-                        />
-                        <Button title="Search" onPress={search} color="#6A0DAD" />
-                    </View>
-                    {searchResults.map((user, index) => (
-                        <View key={user?.id || index} style={styles.userItem}>
-                            <Text style={styles.userText}>{user?.name} (Code: {user?.guardianCode})</Text>
-                            <Button title="Add" onPress={() => user?.id && addGuardian(user.id)} />
+            {tab === 'guardians' ? (
+                <View style={styles.content}>
+                    <View style={styles.searchSection}>
+                        <Text style={styles.sectionTitle}>Add New Watcher</Text>
+                        <View style={styles.searchRow}>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Enter 6-digit code"
+                                placeholderTextColor={COLORS.mutedText}
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
+                                keyboardType="number-pad"
+                                maxLength={6}
+                            />
+                            <TouchableOpacity style={styles.searchButton} onPress={search}>
+                                <Ionicons name="search" size={20} color={COLORS.black} />
+                            </TouchableOpacity>
                         </View>
-                    ))}
+                    </View>
 
-                    <Text style={styles.subtitle}>My Guardians List</Text>
+                    {searchResults.length > 0 && (
+                        <View style={styles.resultContainer}>
+                            {searchResults.map((user, index) => (
+                                <View key={user?.id || index} style={styles.userCard}>
+                                    <View style={styles.userInfo}>
+                                        <View style={styles.avatarPlaceholder}>
+                                            <Text style={styles.avatarText}>{user?.name?.charAt(0)}</Text>
+                                        </View>
+                                        <View>
+                                            <Text style={styles.cardTitle}>{user?.name}</Text>
+                                            <Text style={styles.cardSubtitle}>Code: {user?.guardianCode}</Text>
+                                        </View>
+                                    </View>
+                                    <TouchableOpacity style={styles.addButton} onPress={() => user?.id && addGuardian(user.id)}>
+                                        <Text style={styles.addButtonText}>Add</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            ))}
+                        </View>
+                    )}
+
+                    <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Trusted Watchers</Text>
                     <FlatList
                         data={guardians}
                         keyExtractor={(item, index) => item?.id?.toString() ?? index.toString()}
+                        refreshing={loading}
+                        onRefresh={loadData}
+                        ListEmptyComponent={<Text style={styles.emptyText}>No watchers added yet.</Text>}
                         renderItem={({ item }) => (
-                            <View style={styles.userItem}>
-                                <Text style={styles.userText}>{item?.name || 'Unknown'}</Text>
-                                <Button title="Remove" color="red" onPress={() => item?.id && removeGuardian(item.id)} />
+                            <View style={styles.userCard}>
+                                <View style={styles.userInfo}>
+                                    <View style={[styles.avatarPlaceholder, { backgroundColor: COLORS.darkGreen }]}>
+                                        <Text style={[styles.avatarText, { color: COLORS.neonGreen }]}>{item?.name?.charAt(0)}</Text>
+                                    </View>
+                                    <Text style={styles.cardTitle}>{item?.name || 'Unknown'}</Text>
+                                </View>
+                                <TouchableOpacity onPress={() => item?.id && removeGuardian(item.id)}>
+                                    <Ionicons name="trash-outline" size={20} color={COLORS.danger} />
+                                </TouchableOpacity>
                             </View>
                         )}
                     />
                 </View>
-            )}
-
-            {tab === 'protecting' && (
-                <View style={styles.section}>
-                    <Text style={styles.subtitle}>People seeing my location</Text>
-                    {/* Actually protecting means I see THEIR location. The tab title might be confusing or logic swapped.
-                        Plan said: "protectedUsers - users whose location THIS user can see".
-                        So "Protecting" -> I am protecting them -> I see their location.
-                    */}
+            ) : (
+                <View style={styles.content}>
+                    <Text style={styles.sectionTitle}>My Beacons</Text>
                     <FlatList
                         data={protecting}
                         keyExtractor={(item, index) => item?.id?.toString() ?? index.toString()}
+                        refreshing={loading}
+                        onRefresh={loadData}
+                        ListEmptyComponent={<Text style={styles.emptyText}>You are not watching any beacons yet.</Text>}
                         renderItem={({ item }) => (
-                            <View style={styles.userItem}>
-                                <View>
-                                    <Text style={styles.userText}>{item?.name || 'Unknown'}</Text>
-                                    {item?.lastLatitude && item?.lastLongitude ? (
-                                        <Text style={styles.subText}>
-                                            Last seen: {new Date(item.lastLocationUpdate || '').toLocaleString()}
-                                            {'\n'}
-                                            Lat: {item.lastLatitude.toFixed(4)}, Lng: {item.lastLongitude.toFixed(4)}
-                                        </Text>
-                                    ) : (
-                                        <Text style={styles.subText}>Location unknown</Text>
-                                    )}
+                            <View style={styles.userCard}>
+                                <View style={styles.userInfo}>
+                                    <View style={[styles.avatarPlaceholder, { backgroundColor: '#4C1D95' }]}>
+                                        <Text style={[styles.avatarText, { color: '#A78BFA' }]}>{item?.name?.charAt(0)}</Text>
+                                    </View>
+                                    <View>
+                                        <Text style={styles.cardTitle}>{item?.name || 'Unknown'}</Text>
+                                        {item?.lastLocationUpdate ? (
+                                            <Text style={styles.cardSubtitle}>
+                                                Last seen: {new Date(item.lastLocationUpdate).toLocaleTimeString()}
+                                            </Text>
+                                        ) : (
+                                            <Text style={styles.cardSubtitle}>Location unknown</Text>
+                                        )}
+                                    </View>
                                 </View>
+                                <Ionicons name="location-outline" size={20} color={COLORS.neonGreen} />
                             </View>
                         )}
                     />
@@ -160,16 +243,52 @@ export default function GuardianScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, padding: 20, backgroundColor: '#000' },
-    tabContainer: { flexDirection: 'row', marginBottom: 20 },
-    tab: { flex: 1, padding: 10, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: '#333' },
-    activeTab: { borderBottomColor: '#6A0DAD' },
-    tabText: { color: '#fff', fontWeight: 'bold' },
-    section: { flex: 1 },
-    searchRow: { flexDirection: 'row', marginBottom: 10 },
-    input: { flex: 1, backgroundColor: '#222', color: '#fff', padding: 10, borderRadius: 5, marginRight: 10 },
-    subtitle: { color: '#aaa', fontSize: 18, marginBottom: 10, marginTop: 10 },
-    userItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 10, backgroundColor: '#111', marginBottom: 5, borderRadius: 5 },
-    userText: { color: '#fff' },
-    subText: { color: '#888', fontSize: 12 },
+    container: { flex: 1, backgroundColor: COLORS.black, padding: SIZES.padding },
+    topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 30, marginBottom: 20 },
+    screenTitle: { color: COLORS.white, fontSize: SIZES.h1, fontWeight: 'bold' },
+    refreshButton: { padding: 8, backgroundColor: COLORS.surface, borderRadius: 20 },
+
+    header: { marginBottom: 20 },
+    codeCard: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+        borderColor: COLORS.neonGreen,
+        borderWidth: 1,
+        padding: 15,
+        borderRadius: SIZES.radius
+    },
+    codeLabel: { color: COLORS.neonGreen, fontSize: SIZES.tiny, textTransform: 'uppercase', marginBottom: 5 },
+    codeValue: { color: COLORS.white, fontSize: 24, fontWeight: 'bold', letterSpacing: 2 },
+    copyButton: { backgroundColor: COLORS.neonGreen, padding: 8, borderRadius: 8 },
+    codeDescription: { color: COLORS.mutedText, fontSize: SIZES.small, marginTop: 8 },
+
+    tabContainer: { flexDirection: 'row', backgroundColor: COLORS.surface, borderRadius: SIZES.radius, padding: 4, marginBottom: 20 },
+    tab: { flex: 1, flexDirection: 'row', paddingVertical: 10, alignItems: 'center', justifyContent: 'center', borderRadius: SIZES.radius - 4 },
+    activeTab: { backgroundColor: COLORS.mediumGray },
+    tabText: { color: COLORS.mutedText, fontWeight: '600', marginLeft: 8 },
+    activeTabText: { color: COLORS.white },
+
+    content: { flex: 1 },
+    sectionTitle: { color: COLORS.white, fontSize: SIZES.h3, fontWeight: 'bold', marginBottom: 15 },
+
+    searchSection: { marginBottom: 20 },
+    searchRow: { flexDirection: 'row' },
+    input: { flex: 1, backgroundColor: COLORS.surface, color: COLORS.white, padding: 12, borderRadius: SIZES.radius, marginRight: 10, borderWidth: 1, borderColor: COLORS.lightGray },
+    searchButton: { backgroundColor: COLORS.neonGreen, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20, borderRadius: SIZES.radius },
+
+    resultContainer: { marginBottom: 20 },
+
+    userCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, backgroundColor: COLORS.surface, marginBottom: 10, borderRadius: SIZES.radius },
+    userInfo: { flexDirection: 'row', alignItems: 'center' },
+    avatarPlaceholder: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.mediumGray, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+    avatarText: { color: COLORS.white, fontWeight: 'bold', fontSize: 16 },
+    cardTitle: { color: COLORS.white, fontSize: 16, fontWeight: 'bold' },
+    cardSubtitle: { color: COLORS.mutedText, fontSize: 12 },
+
+    addButton: { backgroundColor: COLORS.neonGreen, paddingVertical: 6, paddingHorizontal: 16, borderRadius: 20 },
+    addButtonText: { color: COLORS.black, fontWeight: 'bold', fontSize: 12 },
+
+    emptyText: { color: COLORS.mutedText, textAlign: 'center', marginTop: 20 },
 });
